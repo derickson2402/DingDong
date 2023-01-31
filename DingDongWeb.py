@@ -33,7 +33,7 @@ License
 
 #############################################################################"""
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_file
 from flask_restful import Resource, Api, reqparse
 from os import path, getenv, mkdir, mknod
 import ast
@@ -47,7 +47,7 @@ if not system() == 'Linux':
 del system
 
 # Load settings from env, as we are running in container
-API_URL = path.join('/', getenv('API_URL', 'api').strip('/'))
+API_BASE_URL = path.join('/', getenv('API_BASE_URL', 'api').strip('/'))
 LIB_DIR = path.join('/', getenv('LIBRARY_DIRECTORY', 'library').strip('/'))
 LIB_CONF_FILE = getenv('LIB_CONF_FILE', 'dingdongconfig.json')
 
@@ -126,7 +126,7 @@ class Libary(Resource):
 			}
 			libIDSeq += 1
 		except:
-			print(f"ERROR: {path.join(API_URL, 'library')} POST could not add '{args['name']}' because it exists already")
+			print(f"ERROR: {path.join(API_BASE_URL, 'library')} POST could not add '{args['name']}' because it exists already")
 			return {'message': f"could not add {args['name']}"}, 401
 		return {'library': libDict}, 201
 	pass
@@ -138,10 +138,10 @@ class IndexAPI(Resource):
 
 @app.route('/')
 def webIndex():
-	return f'Pardon the dust, but this site is still being built! You can try our API at {API_URL} if you want!'
+	return f'Pardon the dust, but this site is still being built! You can try our API at {API_BASE_URL} if you want!'
 
-api.add_resource(Libary, path.join(API_URL, 'library'))
-api.add_resource(IndexAPI, API_URL)
+api.add_resource(Libary, path.join(API_BASE_URL, 'library'))
+api.add_resource(IndexAPI, API_BASE_URL)
 
 if __name__ == '__main__':
 	app.run()
