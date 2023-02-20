@@ -83,17 +83,17 @@ class DingDongDB:
 		finally:
 			cur.close()
 
-	def getVolume(self):
+	def getVolume(self) -> int:
 		"""Get the volume level as percent [0,100]"""
 		val = self.__getConfigValue('Volume')
 		return int(val)
 
-	def getCurrentSound(self):
+	def getCurrentSound(self) -> int:
 		"""Get the ID of the current sound effect"""
 		val = self.__getConfigValue('CurrentSound')
 		return int(val)
 
-	def getMaxSoundLength(self):
+	def getMaxSoundLength(self) -> int:
 		"""Get the maximum length, in seconds, a sound can play for"""
 		val = self.__getConfigValue('MaxSoundLength')
 		return int(val)
@@ -115,6 +115,9 @@ class DingDongDB:
 			raise ValueError(f'{soundLength} is not positive time length')
 		else:
 			self.__setConfigValue('MaxSoundLength', soundLength)
+
+	def getConfigDict(self) -> dict:
+		raise NotImplemented
 
 if __name__ == '__main__':
 	print("Use this package as a library only")

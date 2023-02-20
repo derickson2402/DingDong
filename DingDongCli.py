@@ -48,15 +48,19 @@ confDict = {'volume': '50', 'currentSound': None}
 def checkIn():
 	"""Ping the API for updates, download new sounds if needed"""
 	url = path.join(API_URL, 'config')
-	r = requests.get(url)
+	try:
+		r = requests.get(url)
+	except:
+		print(f'Error: could not connect to {url}')
+		return
 	if not r.status_code == 200:
-		print(f"ERROR: got {r.status_code} during GET to {url}")
+		print(f'ERROR: got {r.status_code} during GET to {url}')
 		return
 	# Update our local config from response
 	confDict['volume'] = r.json()['volume']
 	if not confDict['currentSound'] == r.json()['currentSound']:
 		if downloadSound():
-			print(f"ERROR: failed to download new sound. Skipping update...")
+			print(f'ERROR: failed to download new sound. Skipping update...')
 		else:
 			confDict['currentSound'] = r.json()['currentSound']
 	return

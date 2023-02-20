@@ -38,6 +38,7 @@ from flask_restful import Resource, Api, reqparse
 from os import path, getenv, mkdir, mknod
 import ast
 import json
+from DingDongDB import DingDongDB
 
 # We must be running on Linux (preferrably in a container)
 from platform import system
@@ -48,47 +49,18 @@ del system
 
 # Load settings from env, as we are running in container
 API_BASE_URL = path.join('/', getenv('API_BASE_URL', 'api').strip('/'))
-LIB_DIR = path.join('/', getenv('LIBRARY_DIRECTORY', 'library').strip('/'))
-LIB_CONF_FILE = getenv('LIB_CONF_FILE', 'dingdongconfig.json')
-
-# Verify we can access the library folder
-if not path.exists(LIB_DIR):
-	try:
-		print(f"WARNING: library directory '{LIB_DIR}' does not exist, creating it")
-		mkdir(LIB_DIR)
-	except:
-		print(f"FATAL: could not create directory '{LIB_DIR}'")
-		exit(1)
-
-# Read in the configuration file
-libDict = { }
-configDict = { }
-libIDSeq = 0
-tempDict = { }
-if path.isfile(LIB_CONF_FILE):
-	try:
-		with open(LIB_CONF_FILE) as f:
-			tempDict = json.load(f)
-	except:
-		print(f"FATAL: could not read config file '{LIB_CONF_FILE}'")
-		exit(1)
-
-# Set up default config and override it with config file if it was found
-if 'library' in tempDict.keys():
-	libDict = tempDict['library']
-else:
-	libDict = { }
-libDict = tempDict['library'] if ('library' in tempDict.keys()) else { }
-libIDSeq = tempDict['id_seq'] if ('id_seq' in tempDict.keys()) else len(libDict)
-configDict = tempDict['config'] if ('config' in tempDict.keys()) else {'sound': None, 'volume': 0.5 }
-
-# Write back to config file to make sure it is well-formed and is not missing new settings
-try:
-	with open(LIB_CONF_FILE, "w") as f:
-		json.dump({'id_seq': libIDSeq, 'library': libDict, 'config': configDict}, f)
-except:
-	print(f"FATAL: could not create config file '{LIB_CONF_FILE}'")
+DB_HOST = getenv('DB_HOST')
+DB_PASSWORD = getenv('DB_PASSWORD')
+if DB_HOST is None or DB_PASSWORD is None:
+	print('FATAL: set the DB_HOST and DB_PASSWORD env variables')
 	exit(1)
+
+# Connect to database backend
+try:
+	db = DingDongDB(DB_HOST, DB_PASSWORD)
+except Exception as e:
+	print('FATAL: could not connect to database backend')
+	raise
 
 # Now we are ready, configure the server
 app = Flask(__name__)
@@ -98,7 +70,7 @@ class Config(Resource):
 	"""API endpoint for managing doorbell configuration"""
 	def get(self):
 		"""Give client current configuration options and values"""
-		return {'config': configDict}, 200
+		return {'config': db.getConfigDict()}, 200
 	def post(self):
 		"""Client updates the current configuration"""
 		parser = reqparse.RequestParser()
@@ -138,7 +110,8 @@ class IndexAPI(Resource):
 
 @app.route('/')
 def webIndex():
-	return f'Pardon the dust, but this site is still being built! You can try our API at {API_BASE_URL} if you want!'
+	return f'Pardon the dust, but this site is still being built! You can ' \
+			'try our API at {API_BASE_URL} if you want!'
 
 api.add_resource(Libary, path.join(API_BASE_URL, 'library'))
 api.add_resource(IndexAPI, API_BASE_URL)
