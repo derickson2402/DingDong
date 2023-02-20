@@ -11,7 +11,7 @@ Description
 	configuration options for DingDong.
 
 Project URL
-	https://github.com/derickson2402/EECS388-Project-1.git
+	https://github.com/derickson2402/DingDong.git
  
 License
 	GNU GPLv3
