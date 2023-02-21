@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 """#############################################################################
+
 Date
 	31 January 2023
  
@@ -33,7 +34,7 @@ License
 
 #############################################################################"""
 
-from flask import Flask, render_template, send_file
+from flask import Flask, render_template, send_file, jsonify, request
 from flask_restful import Resource, Api, reqparse
 from os import path, getenv, mkdir, mknod
 import ast
@@ -60,7 +61,7 @@ try:
 	db = DingDongDB(DB_HOST, DB_PASSWORD)
 except Exception as e:
 	print('FATAL: could not connect to database backend')
-	raise
+	exit(1)
 
 # Now we are ready, configure the server
 app = Flask(__name__)
@@ -70,13 +71,22 @@ class Config(Resource):
 	"""API endpoint for managing doorbell configuration"""
 	def get(self):
 		"""Give client current configuration options and values"""
-		return {'config': db.getConfigDict()}, 200
+		try:
+			rtrn = db.getConfigDict()
+			return {'config': rtrn}, 200
+		except:
+			app.logger.error('Could not get config from db')
+			return { }, 500
 	def post(self):
 		"""Client updates the current configuration"""
-		parser = reqparse.RequestParser()
-		parser.add_argument('option')
-		args = parser.parse_args()
-		return {'message': 'method not yet implemented'}, 404
+		rqst = request.get_json()
+		try:
+			for key, val in rqst.items():
+				db.__setConfigValue(key, val)
+			return {'config', rqst}, 200
+		except:
+			app.logger.error(f'Could not update config with {rqst}')
+			return {'message': 'Failure to set configuration'}, 500
 
 class Libary(Resource):
 	"""API endpoint for managing sound effect library"""

@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 """#############################################################################
+
 Date
 	19 February 2023
  
@@ -37,7 +38,7 @@ import psycopg2
 TABLE_CONFIG = 'config'
 TABLE_CONFIG_COLUMN_VALUE = 'ConfigValue'
 TABLE_CONFIG_COLUMN_KEY = 'ConfigName'
-TABLE_CONFIG_VALID_KEYS = ['Volume', 'CurrentSound', 'MaxSoundLength']
+TABLE_CONFIG_VALID_KEYS = ['CurrentSound', 'MaxSoundLength', 'Volume']
 
 class DingDongDB:
 	"""Database connector class to make backend connections nicer"""
@@ -117,7 +118,20 @@ class DingDongDB:
 			self.__setConfigValue('MaxSoundLength', soundLength)
 
 	def getConfigDict(self) -> dict:
-		raise NotImplemented
+		"""Get all configuration options as a dictionary"""
+		sql = f'SELECT {TABLE_CONFIG_COLUMN_KEY} {TABLE_CONFIG_COLUMN_VALUE} ' \
+				f'FROM {TABLE_CONFIG} ORDER BY {TABLE_CONFIG_COLUMN_KEY} ASC'
+		cur = self.db.cursor()
+		rtrn = { }
+		try:
+			cur.execute(sql, key)
+			while (row = cur.fetchone()):
+				rtrn[row[0]] = row[1]
+		except Exception as e:
+			raise
+		finally:
+			cur.close()
+		return rtrn
 
 if __name__ == '__main__':
 	print("Use this package as a library only")
