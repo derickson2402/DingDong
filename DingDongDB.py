@@ -35,10 +35,16 @@ License
 
 import psycopg2
 
-TABLE_CONFIG = 'config'
-TABLE_CONFIG_COLUMN_VALUE = 'ConfigValue'
-TABLE_CONFIG_COLUMN_KEY = 'ConfigName'
-TABLE_CONFIG_VALID_KEYS = ['CurrentSound', 'MaxSoundLength', 'Volume']
+TBL_CONFIG = 'ConfigTbl'
+TBL_CONFIG_COL_VALUE = 'ConfigValue'
+TBL_CONFIG_KEY = 'ConfigName'
+TBL_CONFIG_VALID_KEYS = ['CurrentSound', 'MaxSoundLength', 'Volume']
+TBL_LIBRARY = 'SoundLibraryTbl'
+TBL_LIBRARY_ID = 'soundID'
+TBL_LIBRARY_NAME = 'name'
+TBL_LIBRARY_LENGTH = 'length'
+TBL_LIBRARY_FILE = 'filePath'
+TBL_LIBRARY_TIME = 'uploadTime'
 
 class DingDongDB:
 	"""Database connector class to make backend connections nicer"""
@@ -55,10 +61,10 @@ class DingDongDB:
 
 	def getConfigValue(self, key) -> int:
 		"""Get a config value"""
-		if key not in TABLE_CONFIG_VALID_KEYS:
+		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
-		sql = f'SELECT {TABLE_CONFIG_COLUMN_VALUE} FROM {TABLE_CONFIG} WHERE ' \
-				f'{TABLE_CONFIG_COLUMN_KEY} = (%s)'
+		sql = f'SELECT {TBL_CONFIG_COL_VALUE} FROM {TBL_CONFIG} WHERE ' \
+				f'{TBL_CONFIG_KEY} = (%s)'
 		cur = self.db.cursor()
 		rtrn = None
 		try:
@@ -76,11 +82,11 @@ class DingDongDB:
 
 	def setConfigValue(self, key, val):
 		"""Update a config value. Make sure you are passing in a valid value"""
-		if key not in TABLE_CONFIG_VALID_KEYS:
+		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
-		sql = f'UPDATE {TABLE_CONFIG} ' \
-				f'SET {TABLE_CONFIG_COLUMN_VALUE} = (%s) ' \
-				f'WHERE {TABLE_CONFIG_COLUMN_KEY} = "(%s)";'
+		sql = f'UPDATE {TBL_CONFIG} ' \
+				f'SET {TBL_CONFIG_COL_VALUE} = (%s) ' \
+				f'WHERE {TBL_CONFIG_KEY} = "(%s)";'
 		cur = self.db.cursor()
 		try:
 			cur.execute(sql, (val,key))
@@ -92,16 +98,37 @@ class DingDongDB:
 
 	def getConfigDict(self) -> dict:
 		"""Get all configuration options as a dictionary"""
-		sql = f'SELECT {TABLE_CONFIG_COLUMN_KEY}, ' \
-				f'{TABLE_CONFIG_COLUMN_VALUE} ' \
-				f'FROM {TABLE_CONFIG} ' \
-				f'ORDER BY {TABLE_CONFIG_COLUMN_KEY} ASC'
+		sql = f'SELECT {TBL_CONFIG_KEY}, ' \
+				f'{TBL_CONFIG_COL_VALUE} ' \
+				f'FROM {TBL_CONFIG} ' \
+				f'ORDER BY {TBL_CONFIG_KEY} ASC'
 		cur = self.db.cursor()
 		rtrn = { }
 		try:
 			cur.execute(sql)
 			for record in cur:
 				rtrn[record[0]] = record[1]
+		except Exception as e:
+			rtrn = None
+			raise
+		finally:
+			cur.close()
+		return rtrn
+
+	def getLibraryList(self, start=0, limit=10) -> list:
+		"""Get list of songs in the sound library"""
+		if start < 0 or limit < 1:
+			raise ValueError('Must give start>0 and limit>1')
+		sql = f'SELECT {TBL_LIBRARY_ID}, {TBL_LIBRARY_NAME}, ' \
+				f'{TBL_LIBRARY_LENGTH}, {TBL_LIBRARY_TIME} ' \
+				f'FROM {TBL_LIBRARY} ' \
+				f'ORDER BY {TBL_LIBRARY_NAME} ASC ' \
+				f'LIMIT {limit} OFFSET {start}'
+		cur = self.db.cursor()
+		rtrn = [ ]
+		try:
+			cur.execute(sql)
+			rtrn = cur.fetchall()
 		except Exception as e:
 			rtrn = None
 			raise

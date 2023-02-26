@@ -92,7 +92,18 @@ class Libary(Resource):
 	"""API endpoint for managing sound effect library"""
 	def get(self):
 		"""Give client list of available sounds in library"""
-		return {'size': len(libDict), 'library': libDict}, 200
+		args = request.args
+		try:
+			start = args.get('start', default=0, type=int)
+			limit = args.get('limit', default=10, type=int)
+		except:
+			return {'message': 'Invalid parameters provided'}, 400
+		try:
+			libList = db.getLibraryList(start, limit)
+			return {'size': limit, 'library': libList}, 200
+		except:
+			return {'message': 'Failure to get library'}, 500
+
 	def post(self):
 		"""Client adds a new sound to the library"""
 		parser = reqparse.RequestParser()
