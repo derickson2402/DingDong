@@ -82,7 +82,7 @@ class Config(Resource):
 		rqst = request.get_json()
 		try:
 			for key, val in rqst.items():
-				db.__setConfigValue(key, val)
+				db.setConfigValue(key, val)
 			return {'config', rqst}, 200
 		except:
 			app.logger.error(f'Could not update config with {rqst}')

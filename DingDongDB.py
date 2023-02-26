@@ -53,27 +53,33 @@ class DingDongDB:
 			dbname=database
 		)
 
-	def __getConfigValue(self, key):
-		"""Base getConfig method for getting config values"""
+	def getConfigValue(self, key) -> int:
+		"""Get a config value"""
 		if key not in TABLE_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'SELECT {TABLE_CONFIG_COLUMN_VALUE} FROM {TABLE_CONFIG} WHERE ' \
 				f'{TABLE_CONFIG_COLUMN_KEY} = (%s)'
 		cur = self.db.cursor()
+		rtrn = None
 		try:
 			cur.execute(sql, key)
-			data = cur.fetchone()
-			return data[0]
+			rtrn = cur.fetchone()
+			if rtrn is None or len(rtrn) < 1:
+				raise Exception(f'db did not return anything for config {key}')
+			rtrn = rtrn[0]
 		except Exception as e:
+			rtrn = None
 			raise
 		finally:
 			cur.close()
+			return rtrn
 
-	def __setConfigValue(self, key, val):
-		"""Base setConfig method for updating values"""
+	def setConfigValue(self, key, val):
+		"""Update a config value. Make sure you are passing in a valid value"""
 		if key not in TABLE_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
-		sql = f'UPDATE {TABLE_CONFIG} SET {TABLE_CONFIG_COLUMN_VALUE} = (%s) ' \
+		sql = f'UPDATE {TABLE_CONFIG} ' \
+				f'SET {TABLE_CONFIG_COLUMN_VALUE} = (%s) ' \
 				f'WHERE {TABLE_CONFIG_COLUMN_KEY} = "(%s)";'
 		cur = self.db.cursor()
 		try:
@@ -84,50 +90,20 @@ class DingDongDB:
 		finally:
 			cur.close()
 
-	def getVolume(self) -> int:
-		"""Get the volume level as percent [0,100]"""
-		val = self.__getConfigValue('Volume')
-		return int(val)
-
-	def getCurrentSound(self) -> int:
-		"""Get the ID of the current sound effect"""
-		val = self.__getConfigValue('CurrentSound')
-		return int(val)
-
-	def getMaxSoundLength(self) -> int:
-		"""Get the maximum length, in seconds, a sound can play for"""
-		val = self.__getConfigValue('MaxSoundLength')
-		return int(val)
-
-	def setVolume(self, volume):
-		"""Update the volume level to percent [0,100]"""
-		if volume > 100 or volume < 0:
-			raise ValueError(f'{volume} not in range [0,100]')
-		else:
-			self.__setConfigValue('Volume', volume)
-
-	def setCurrentSound(self, soundID):
-		"""Update the current sound effect"""
-		self.__setConfigValue('CurrentSound', soundID)
-
-	def setMaxSoundLength(self, soundLength):
-		"""Update the maximum length, in seconds, a sound can play for"""
-		if soundLength < 0:
-			raise ValueError(f'{soundLength} is not positive time length')
-		else:
-			self.__setConfigValue('MaxSoundLength', soundLength)
-
 	def getConfigDict(self) -> dict:
 		"""Get all configuration options as a dictionary"""
-		sql = f'SELECT {TABLE_CONFIG_COLUMN_KEY} {TABLE_CONFIG_COLUMN_VALUE} ' \
-				f'FROM {TABLE_CONFIG} ORDER BY {TABLE_CONFIG_COLUMN_KEY} ASC'
+		sql = f'SELECT {TABLE_CONFIG_COLUMN_KEY}, ' \
+				f'{TABLE_CONFIG_COLUMN_VALUE} ' \
+				f'FROM {TABLE_CONFIG} ' \
+				f'ORDER BY {TABLE_CONFIG_COLUMN_KEY} ASC'
 		cur = self.db.cursor()
 		rtrn = { }
 		try:
-			cur.execute(sql, key)
-			while (row = cur.fetchone()):
-				rtrn[row[0]] = row[1]
+			cur.execute(sql)
+			for record in cur:
+				rtrn[record[0]] = record[1]
 		except Exception as e:
+			rtrn = None
 			raise
 		finally:
 			cur.close()
