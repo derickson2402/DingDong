@@ -36,7 +36,10 @@ License
 
 from flask import Flask, render_template, send_file, jsonify, request
 from flask_restful import Resource, Api, reqparse
-from os import path, getenv, mkdir, mknod
+from werkzeug.utils import secure_filename
+from os import path, getenv, remove
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 import ast
 import json
 from DingDongDB import DingDongDB
@@ -76,7 +79,7 @@ class Config(Resource):
 			return {'config': rtrn}, 200
 		except:
 			app.logger.error('Could not get config from db')
-			return { }, 500
+			return {'message': 'Failure to get configuration'}, 500
 	def post(self):
 		"""Client updates the current configuration"""
 		rqst = request.get_json()
@@ -110,19 +113,31 @@ class Libary(Resource):
 		parser.add_argument('name', required=True)
 		parser.add_argument('file_name', required=True)
 		parser.add_argument('description', required=True)
-		args = parser.parse_args()
+		args = request.args
+		if 'file' not in request.files:
+			return {'message': 'No file uploaded'}, 400
+		recvFile = request.files['file']
+		if recvFile.filename == '' or recvFile.filename is None:
+			return {'message': 'No file uploaded'}, 400
+		if Path(recvFile.filename).suffix not in ['mp4', 'mp3', 'wav', 'aac',
+				'pcm', 'aiff', 'flac', 'alac']:
+			return {'message': 'File type not valid'}, 400
+		# Create temporary file to save to, then close it later
 		try:
-			libDict[libIDSeq] = {
-				'name': args['name'],
-				'file_name': args['file_name'],
-				'description': args['description']
-			}
-			libIDSeq += 1
+			tempFile = NamedTemporaryFile(mode='w+b', delete=False)
+			tempFile.close()
+			recvFile.save(tempFile.name)
+			soundID = db.addToLibrary(
+					args['name'],
+					args['description'],
+					Path(tempFile.name))
 		except:
-			print(f"ERROR: {path.join(API_BASE_URL, 'library')} POST could not add '{args['name']}' because it exists already")
-			return {'message': f"could not add {args['name']}"}, 401
-		return {'library': libDict}, 201
-	pass
+			return {'message': 'Could not upload file'}, 500
+		finally:
+			try: remove(tempFile.name)
+			except: pass
+		return {'name': args['name'], 'description': args['description'],
+				'soundID': soundID}, 200
 
 class IndexAPI(Resource):
 	"""Helpful messages and status at the API Index"""

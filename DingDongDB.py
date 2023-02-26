@@ -34,6 +34,9 @@ License
 #############################################################################"""
 
 import psycopg2
+from pydub import AudioSegment
+from pathlib import Path
+from os import remove
 
 TBL_CONFIG = 'ConfigTbl'
 TBL_CONFIG_COL_VALUE = 'ConfigValue'
@@ -42,9 +45,18 @@ TBL_CONFIG_VALID_KEYS = ['CurrentSound', 'MaxSoundLength', 'Volume']
 TBL_LIBRARY = 'SoundLibraryTbl'
 TBL_LIBRARY_ID = 'soundID'
 TBL_LIBRARY_NAME = 'name'
+TBL_LIBRARY_DESC = 'description'
 TBL_LIBRARY_LENGTH = 'length'
-TBL_LIBRARY_FILE = 'filePath'
+TBL_LIBRARY_DATA = 'filePath'
 TBL_LIBRARY_TIME = 'uploadTime'
+
+def soundToMP3(path: Path) -> Path:
+	"""Convert the sound file to mp3 format, returns the name of the new file"""
+	outPath = path.with_suffix('.mp3')
+	inSound = AudioSegment(path)
+	outSound = inSound.set_channels(1)
+	outSound.export(outPath, format="mp3")
+	return outPath
 
 class DingDongDB:
 	"""Database connector class to make backend connections nicer"""
@@ -64,7 +76,7 @@ class DingDongDB:
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'SELECT {TBL_CONFIG_COL_VALUE} FROM {TBL_CONFIG} WHERE ' \
-				f'{TBL_CONFIG_KEY} = (%s)'
+				f'{TBL_CONFIG_KEY} = %s'
 		cur = self.db.cursor()
 		rtrn = None
 		try:
@@ -85,8 +97,8 @@ class DingDongDB:
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'UPDATE {TBL_CONFIG} ' \
-				f'SET {TBL_CONFIG_COL_VALUE} = (%s) ' \
-				f'WHERE {TBL_CONFIG_KEY} = "(%s)";'
+				f'SET {TBL_CONFIG_COL_VALUE} = %s ' \
+				f'WHERE {TBL_CONFIG_KEY} = "%s";'
 		cur = self.db.cursor()
 		try:
 			cur.execute(sql, (val,key))
@@ -135,6 +147,24 @@ class DingDongDB:
 		finally:
 			cur.close()
 		return rtrn
+
+	def addToLibrary(self, name: str, desc: str, soundFile: Path) -> int:
+		"""Convert a song to mp3 and add it to the db library"""
+		sql = f'INSERT INTO {TBL_LIBRARY}({TBL_LIBRARY_NAME}, ' \
+				f'{TBL_LIBRARY_DESC}, {TBL_LIBRARY_DATA}) ' \
+				f'VALUES (%s, %s, %s)'
+		mp3File = soundToMP3(soundFile)
+		cur = self.db.cursor()
+		try:
+			with open(mp3File) as f:
+				cur.execute(sql, (name, desc, f.read()))
+		except Exception as e:
+			raise
+		finally:
+			cur.close()
+			remove(mp3File)
+		id = -1
+		return id
 
 if __name__ == '__main__':
 	print("Use this package as a library only")
