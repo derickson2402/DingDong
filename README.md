@@ -12,4 +12,12 @@ The API keeps a library of available sound effects as well as a couple of option
 ## Usage
 
 This project is still a work in progress.
-You can tinker with the API in its current state by cloning this repo and running ```Run API``` in the VSCode debugger.
+You can tinker with the API in its current state by opening this repo in VSCode and running ```Run API``` in the debugger.
+
+For manual control, especially when working on the database, open a terminal on your host machine (i.e. not the one in VSCode, which is open in a devcontainer), and run:
+
+```bash
+docker compose build && docker compose up
+```
+
+Your changes will not automatically be picked up so you will have to run this every time you want to apply your changes.
