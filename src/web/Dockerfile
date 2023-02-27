@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.10
 
 # Install dependencies
 COPY requirements.txt requirements.txt
@@ -10,4 +10,4 @@ WORKDIR /app
 COPY DingDongWeb.py DingDongWeb.py
 COPY DingDongDB.py DingDongDB.py
 ENV FLASK_APP DingDongWeb.py
-CMD [ 'python3', '-m', 'flask', 'run', '--host=0.0.0.0']
+CMD [ "python3", "-m", "flask", "run", "--host=0.0.0.0"]

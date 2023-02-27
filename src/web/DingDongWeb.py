@@ -105,7 +105,7 @@ class Libary(Resource):
 			return {'message': 'Invalid parameters provided'}, 400
 		try:
 			libList = db.getLibraryList(start, limit)
-			return {'size': limit, 'library': libList}, 200
+			return {'size': len(libList), 'library': libList}, 200
 		except:
 			return {'message': 'Failure to get library'}, 500
 
@@ -149,9 +149,10 @@ class IndexAPI(Resource):
 @app.route('/')
 def webIndex():
 	return f'Pardon the dust, but this site is still being built! You can ' \
-			'try our API at {API_BASE_URL} if you want!'
+			f'try our API at {API_BASE_URL} if you want!'
 
 api.add_resource(Libary, path.join(API_BASE_URL, 'library'))
+api.add_resource(Config, path.join(API_BASE_URL, 'config'))
 api.add_resource(IndexAPI, API_BASE_URL)
 
 if __name__ == '__main__':

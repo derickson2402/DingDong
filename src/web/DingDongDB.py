@@ -60,8 +60,8 @@ def soundToMP3(path: Path) -> Path:
 
 class DingDongDB:
 	"""Database connector class to make backend connections nicer"""
-	def __init__(self, host, password, port=5432, user="dingdong",
-			database="dingdong"):
+	def __init__(self, host, password, port=5432, user="postgres",
+			database="postgres"):
 		"""Open up a connection to the backend database"""
 		self.db = psycopg2.connect(
 			host=host,

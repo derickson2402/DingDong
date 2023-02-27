@@ -1,0 +1,15 @@
+services:
+    web:
+        image: python:3.10
+        environment:
+            - DB_HOST=db
+            - DB_PASSWORD=password
+        volumes:
+            - "..:/workspaces/dingdong"
+        # Prevent container from instantly exiting, allowing us to attach terminal
+        command: /bin/sh -c "sleep infinity"
+    db:
+        build:
+            context: ../src/db
+        environment:
+            - POSTGRES_PASSWORD=password

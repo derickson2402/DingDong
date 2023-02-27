@@ -1,6 +1,8 @@
 {
 	"name": "PyDev",
-	"image": "python:3.10",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "web",
+	"workspaceFolder": "/workspaces/dingdong",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -13,5 +15,5 @@
 			]
 		}
 	},
-	"postCreateCommand": "pip install -r src/cli/requirements.txt && pip install -r src/web/requirements.txt"
+	"postCreateCommand": "pip install -r src/cli/requirements.txt && pip install -r src/web/requirements.txt && pip install pigar"
 }
