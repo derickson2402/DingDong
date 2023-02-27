@@ -5,9 +5,13 @@
 		"vscode": {
 			"extensions": [
 				"donjayamanne.python-extension-pack",
-				"yzhang.markdown-all-in-one"
+				"yzhang.markdown-all-in-one",
+				"mtxr.sqltools",
+				"ms-azuretools.vscode-docker",
+				"fabiospampinato.vscode-diff",
+				"nhoizey.gremlins"
 			]
 		}
 	},
-	"postCreateCommand": "pip install -r requirements.txt"
+	"postCreateCommand": "pip install -r src/cli/requirements.txt && pip install -r src/web/requirements.txt"
 }

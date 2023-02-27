@@ -1,0 +1,15 @@
+services:
+    dingdong-web:
+        build:
+            context: src/web/
+        ports:
+            - "80:80"
+        env_file:
+            - 'dingdong-example.env'
+        environment:
+            - DB_HOST=dingdong-db
+    dingdong-db:
+        build:
+            context: src/db
+        env_file:
+            - 'dingdong-example.env'

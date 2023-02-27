@@ -39,8 +39,8 @@ from pathlib import Path
 from os import remove
 
 TBL_CONFIG = 'ConfigTbl'
-TBL_CONFIG_COL_VALUE = 'ConfigValue'
-TBL_CONFIG_KEY = 'ConfigName'
+TBL_CONFIG_VALUE = 'configValue'
+TBL_CONFIG_KEY = 'configName'
 TBL_CONFIG_VALID_KEYS = ['CurrentSound', 'MaxSoundLength', 'Volume']
 TBL_LIBRARY = 'SoundLibraryTbl'
 TBL_LIBRARY_ID = 'soundID'
@@ -75,7 +75,7 @@ class DingDongDB:
 		"""Get a config value"""
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
-		sql = f'SELECT {TBL_CONFIG_COL_VALUE} FROM {TBL_CONFIG} WHERE ' \
+		sql = f'SELECT {TBL_CONFIG_VALUE} FROM {TBL_CONFIG} WHERE ' \
 				f'{TBL_CONFIG_KEY} = %s'
 		cur = self.db.cursor()
 		rtrn = None
@@ -97,7 +97,7 @@ class DingDongDB:
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'UPDATE {TBL_CONFIG} ' \
-				f'SET {TBL_CONFIG_COL_VALUE} = %s ' \
+				f'SET {TBL_CONFIG_VALUE} = %s ' \
 				f'WHERE {TBL_CONFIG_KEY} = "%s";'
 		cur = self.db.cursor()
 		try:
@@ -111,7 +111,7 @@ class DingDongDB:
 	def getConfigDict(self) -> dict:
 		"""Get all configuration options as a dictionary"""
 		sql = f'SELECT {TBL_CONFIG_KEY}, ' \
-				f'{TBL_CONFIG_COL_VALUE} ' \
+				f'{TBL_CONFIG_VALUE} ' \
 				f'FROM {TBL_CONFIG} ' \
 				f'ORDER BY {TBL_CONFIG_KEY} ASC'
 		cur = self.db.cursor()

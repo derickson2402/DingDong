@@ -55,6 +55,8 @@ del system
 API_BASE_URL = path.join('/', getenv('API_BASE_URL', 'api').strip('/'))
 DB_HOST = getenv('DB_HOST')
 DB_PASSWORD = getenv('DB_PASSWORD')
+if DB_PASSWORD is None:
+	DB_PASSWORD = getenv('POSTGRES_PASSWORD')
 if DB_HOST is None or DB_PASSWORD is None:
 	print('FATAL: set the DB_HOST and DB_PASSWORD env variables')
 	exit(1)
