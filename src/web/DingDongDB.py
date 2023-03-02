@@ -60,16 +60,30 @@ def soundToMP3(path: Path) -> Path:
 
 class DingDongDB:
 	"""Database connector class to make backend connections nicer"""
-	def __init__(self, host, password, port=5432, user="postgres",
-			database="postgres"):
+	def __init__(self, config: dict):
 		"""Open up a connection to the backend database"""
-		self.db = psycopg2.connect(
-			host=host,
-			password=password,
-			port=port,
-			user=user,
-			dbname=database
+		self.cfg = config
+
+	def __open(self) -> None:
+		self.conn = psycopg2.connect(
+			host=self.cfg['host'],
+			password=self.cfg['password'],
+			port=self.cfg['port'],
+			user=self.cfg['user'],
+			dbname=self.cfg['database']
 		)
+
+	def __close(self) -> None:
+		self.conn.close()
+
+	def testConnection(self):
+		"""Throw an exception if the database cannot be connected to"""
+		try:
+			self.__open()
+		except:
+			raise ConnectionError
+		else:
+			self.__close()
 
 	def getConfigValue(self, key) -> int:
 		"""Get a config value"""
@@ -77,36 +91,38 @@ class DingDongDB:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'SELECT {TBL_CONFIG_VALUE} FROM {TBL_CONFIG} WHERE ' \
 				f'{TBL_CONFIG_KEY} = %s'
-		cur = self.db.cursor()
 		rtrn = None
 		try:
-			cur.execute(sql, key)
-			rtrn = cur.fetchone()
-			if rtrn is None or len(rtrn) < 1:
-				raise Exception(f'db did not return anything for config {key}')
-			rtrn = rtrn[0]
+			self.__open()
+			with self.conn.cursor() as cur:
+				cur.execute(sql, key)
+				rtrn = cur.fetchone()
 		except Exception as e:
-			rtrn = None
-			raise
-		finally:
-			cur.close()
-			return rtrn
+			self.__close()
+			raise e
+		if rtrn is None:
+			raise Exception(f'db did not return anything for config {key}')
+		elif not len(rtrn) == 1:
+			raise Exception(f'db did not return anything for config {key}')
+		return rtrn[0]
 
 	def setConfigValue(self, key, val):
-		"""Update a config value. Make sure you are passing in a valid value"""
+		"""Update a config value. Throws exception if key is invalid, but does
+		not check for valid values"""
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'UPDATE {TBL_CONFIG} ' \
 				f'SET {TBL_CONFIG_VALUE} = %s ' \
-				f'WHERE {TBL_CONFIG_KEY} = "%s";'
-		cur = self.db.cursor()
+				f'WHERE {TBL_CONFIG_KEY} = %s;'
 		try:
-			cur.execute(sql, (val,key))
-			self.db.commit()
+			self.__open()
+			with self.conn.cursor() as cur:
+				cur.execute(sql, (val,key))
+				self.conn.commit()
 		except Exception as e:
-			raise
-		finally:
-			cur.close()
+			self.__close()
+			raise e
+
 
 	def getConfigDict(self) -> dict:
 		"""Get all configuration options as a dictionary"""
@@ -114,17 +130,16 @@ class DingDongDB:
 				f'{TBL_CONFIG_VALUE} ' \
 				f'FROM {TBL_CONFIG} ' \
 				f'ORDER BY {TBL_CONFIG_KEY} ASC'
-		cur = self.db.cursor()
 		rtrn = { }
 		try:
-			cur.execute(sql)
-			for record in cur:
-				rtrn[record[0]] = record[1]
+			self.__open()
+			with self.conn.cursor() as cur:
+				cur.execute(sql)
+				for record in cur:
+					rtrn[record[0]] = record[1]
 		except Exception as e:
-			rtrn = None
-			raise
-		finally:
-			cur.close()
+			self.__close()
+			raise e
 		return rtrn
 
 	def getLibraryList(self, start=0, limit=10) -> list:
@@ -136,16 +151,15 @@ class DingDongDB:
 				f'FROM {TBL_LIBRARY} ' \
 				f'ORDER BY {TBL_LIBRARY_NAME} ASC ' \
 				f'LIMIT {limit} OFFSET {start}'
-		cur = self.db.cursor()
 		rtrn = [ ]
 		try:
-			cur.execute(sql)
-			rtrn = cur.fetchall()
+			self.__open()
+			with self.conn.cursor() as cur:
+				cur.execute(sql)
+				rtrn = cur.fetchall()
 		except Exception as e:
-			rtrn = None
-			raise
-		finally:
-			cur.close()
+			self.__close()
+			raise e
 		return rtrn
 
 	def addToLibrary(self, name: str, desc: str, soundFile: Path) -> int:
@@ -154,17 +168,17 @@ class DingDongDB:
 				f'{TBL_LIBRARY_DESC}, {TBL_LIBRARY_DATA}) ' \
 				f'VALUES (%s, %s, %s)'
 		mp3File = soundToMP3(soundFile)
-		cur = self.db.cursor()
 		try:
-			with open(mp3File) as f:
+			self.__open()
+			with self.conn.cursor() as cur, open(mp3File) as f:
 				cur.execute(sql, (name, desc, f.read()))
+			if mp3File is not None:
+				remove(mp3File)
 		except Exception as e:
-			raise
-		finally:
-			cur.close()
-			remove(mp3File)
-		id = -1
-		return id
+			self.__close()
+			raise e
+		# TODO: get the id from new song in library and return it to user
+		raise NotImplementedError('Added song to library, but currently cannot return ID')
 
 if __name__ == '__main__':
 	print("Use this package as a library only")

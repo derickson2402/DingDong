@@ -53,18 +53,23 @@ del system
 
 # Load settings from env, as we are running in container
 API_BASE_URL = path.join('/', getenv('API_BASE_URL', 'api').strip('/'))
-DB_HOST = getenv('DB_HOST')
-DB_PASSWORD = getenv('DB_PASSWORD')
-if DB_PASSWORD is None:
-	DB_PASSWORD = getenv('POSTGRES_PASSWORD')
-if DB_HOST is None or DB_PASSWORD is None:
+DB_CFG = {
+	'host': getenv('DB_HOST'),
+	'password': getenv('DB_PASSWORD'),
+	'port': 5432,
+	'user': 'postgres',
+	'database': 'postgres'
+}
+if DB_CFG['password'] is None:
+	DB_CFG['password'] = getenv('POSTGRES_PASSWORD')
+if DB_CFG['host'] is None or DB_CFG['password'] is None:
 	print('FATAL: set the DB_HOST and DB_PASSWORD env variables')
 	exit(1)
 
 # Connect to database backend
 try:
-	db = DingDongDB(DB_HOST, DB_PASSWORD)
-except Exception as e:
+	DingDongDB(DB_CFG).testConnection()
+except:
 	print('FATAL: could not connect to database backend')
 	exit(1)
 
@@ -77,21 +82,34 @@ class Config(Resource):
 	def get(self):
 		"""Give client current configuration options and values"""
 		try:
-			rtrn = db.getConfigDict()
+			rtrn = DingDongDB(DB_CFG).getConfigDict()
 			return {'config': rtrn}, 200
-		except:
+		except Exception as e:
+			app.logger.exception(e)
 			app.logger.error('Could not get config from db')
 			return {'message': 'Failure to get configuration'}, 500
 	def post(self):
 		"""Client updates the current configuration"""
-		rqst = request.get_json()
-		try:
-			for key, val in rqst.items():
-				db.setConfigValue(key, val)
-			return {'config', rqst}, 200
-		except:
-			app.logger.error(f'Could not update config with {rqst}')
-			return {'message': 'Failure to set configuration'}, 500
+		rqst = request.json
+		if rqst is None:
+			return { }, 400
+		elif len(rqst) < 1:
+			return { }, 400
+		failUpdate = { }
+		for key, val in rqst.items():
+			try:
+				DingDongDB(DB_CFG).setConfigValue(key, val)
+			except Exception as e:
+				app.logger.exception(e)
+				failUpdate[key] = val
+		if len(failUpdate) > 0:
+			app.logger.error(f'Failed to update: {failUpdate}')
+			return {
+				'message': 'Failure to set all config options',
+				'failed': failUpdate,
+				'config': DingDongDB(DB_CFG).getConfigDict()}, 500
+		else:
+			return {'config': DingDongDB(DB_CFG).getConfigDict()}, 200
 
 class Libary(Resource):
 	"""API endpoint for managing sound effect library"""
@@ -101,12 +119,14 @@ class Libary(Resource):
 		try:
 			start = args.get('start', default=0, type=int)
 			limit = args.get('limit', default=10, type=int)
-		except:
+		except Exception as e:
+			app.logger.exception(e)
 			return {'message': 'Invalid parameters provided'}, 400
 		try:
-			libList = db.getLibraryList(start, limit)
+			libList = DingDongDB(DB_CFG).getLibraryList(start, limit)
 			return {'size': len(libList), 'library': libList}, 200
-		except:
+		except Exception as e:
+			app.logger.exception(e)
 			return {'message': 'Failure to get library'}, 500
 
 	def post(self):
@@ -129,11 +149,12 @@ class Libary(Resource):
 			tempFile = NamedTemporaryFile(mode='w+b', delete=False)
 			tempFile.close()
 			recvFile.save(tempFile.name)
-			soundID = db.addToLibrary(
+			soundID = DingDongDB(DB_CFG).addToLibrary(
 					args['name'],
 					args['description'],
 					Path(tempFile.name))
-		except:
+		except Exception as e:
+			app.logger.exception(e)
 			return {'message': 'Could not upload file'}, 500
 		finally:
 			try: remove(tempFile.name)
