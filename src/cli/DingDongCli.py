@@ -39,6 +39,7 @@ import requests
 import time
 import RPi.GPIO as GPIO
 from pygame import mixer
+import threading
 
 # Load settings from env, as we are running in container
 try:
@@ -62,19 +63,14 @@ except Exception as e:
 def checkIn():
 	"""Ping the API for updates, download new sounds if needed"""
 	url = path.join(str(API_URL), 'config')
-	try:
-		r = requests.get(url)
-	except:
-		print(f'ERROR: could not connect to {url}')
-		return
+	r = requests.get(url)
 	if not r.status_code == 200:
-		print(f'ERROR: got {r.status_code} during GET to {url}')
-		return
+		raise ConnectionError(f'ERROR: got {r.status_code} during GET to {url}')
 	# Update our local config from response
 	confDict['volume'] = r.json()['volume']
 	if not confDict['currentSound'] == r.json()['currentSound']:
 		if downloadSound():
-			print(f'ERROR: failed to download new sound. Skipping update...')
+			raise ConnectionAbortedError(f'ERROR: failed to download new sound. Skipping update...')
 		else:
 			confDict['currentSound'] = r.json()['currentSound']
 	return
@@ -109,8 +105,9 @@ def ringBell():
 	sound.set_volume(confDict['volume'] * 0.01)
 	sound.play()
 
-def threadListenDoorbell():
-	"""Daemon listening for doorbell press, triggers the doorbell to play"""
+def threadListenBell():
+	"""Daemon listening for doorbell press, triggers the doorbell sound to
+	play"""
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setup(BELL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 	while True:
@@ -118,4 +115,14 @@ def threadListenDoorbell():
 		ringBell()
 
 if __name__ == '__main__':
-	exit()
+	# Get initial config then start up the daemon
+	try:
+		checkIn()
+	except Exception as e:
+		print(e)
+		print("FATAL: Failed to get intitial configuration")
+		exit(1)
+	handlerCheckIn = threading.Thread(target=threadCheckIn, daemon=True)
+	handlerListenDoorbell = threading.Thread(target=threadListenBell,daemon=True)
+	handlerCheckIn.run()
+	handlerListenDoorbell.run()
