@@ -2,7 +2,7 @@
 """#############################################################################
 
 Date
-	31 February 2023
+	15 April 2023
  
 Author(s)
 	Dan Erickson (dan@danerick.com)
@@ -37,22 +37,35 @@ License
 from os import path, getenv
 import requests
 import time
+import RPi.GPIO as GPIO
+from pygame import mixer
 
 # Load settings from env, as we are running in container
 try:
-	API_URL = path.join('/', getenv('API_URL').strip('/'))
-	POLL_INTERVAL = getenv('POLL_INTERVAL', 30)
+	API_URL = getenv('API_URL')
+	POLL_INTERVAL = int(getenv('POLL_INTERVAL', 30))
+	BELL_PIN = int(getenv('DOORBELL_PIN', 16))
+	SOUND_FILE = 'currentSound.mp3'
 except:
 	print("FATAL: please specify $API_URL environment variable")
+	exit(1)
 confDict = {'volume': '50', 'currentSound': None}
+
+# Boot the audio device
+try:
+	mixer.init()
+except Exception as e:
+	print(e)
+	print("FATAL: could not start the audio engine")
+	exit(1)
 
 def checkIn():
 	"""Ping the API for updates, download new sounds if needed"""
-	url = path.join(API_URL, 'config')
+	url = path.join(str(API_URL), 'config')
 	try:
 		r = requests.get(url)
 	except:
-		print(f'Error: could not connect to {url}')
+		print(f'ERROR: could not connect to {url}')
 		return
 	if not r.status_code == 200:
 		print(f'ERROR: got {r.status_code} during GET to {url}')
@@ -68,21 +81,41 @@ def checkIn():
 
 def downloadSound() -> bool:
 	"""Download the currentSound from API and set it locally. Returns True on success"""
-	url = path.join(API_URL, 'download')
+	url = path.join(str(API_URL), 'download')
 	r = requests.get(url)
 	if not r.status_code == 200:
 		print(f"ERROR: got {r.status_code} during GET to {url}")
 		return False
 	try:
-		open('currentSound.mp3', 'wb').write(r.content)
+		open(SOUND_FILE, 'wb').write(r.content)
 	except:
 		print(f"ERROR: could not save file after receiving from {url}")
 		return False
 	return True
 
-if __name__ == '__main__':
+def threadCheckIn():
+	"""Daemon that periodically fetches new sounds from remote API.
+	Calls checkIn()"""
 	epoch = time.time()
 	i = 0
 	while True:
 		time.sleep(epoch + i*POLL_INTERVAL - time.time())
 		checkIn()
+
+def ringBell():
+	"""Reset sound playback and play the doorbell noise. Exits immidiately."""
+	mixer.stop()
+	sound = mixer.Sound(SOUND_FILE)
+	sound.set_volume(confDict['volume'] * 0.01)
+	sound.play()
+
+def threadListenDoorbell():
+	"""Daemon listening for doorbell press, triggers the doorbell to play"""
+	GPIO.setmode(GPIO.BCM)
+	GPIO.setup(BELL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+	while True:
+		GPIO.wait_for_edge(BELL_PIN, GPIO.FALLING)
+		ringBell()
+
+if __name__ == '__main__':
+	exit()
