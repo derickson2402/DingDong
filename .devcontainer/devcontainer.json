@@ -11,7 +11,9 @@
 				"mtxr.sqltools",
 				"ms-azuretools.vscode-docker",
 				"fabiospampinato.vscode-diff",
-				"nhoizey.gremlins"
+				"nhoizey.gremlins",
+				"mtxr.sqltools-driver-pg",
+				"ms-python.python"
 			]
 		}
 	},

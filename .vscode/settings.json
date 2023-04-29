@@ -1,3 +1,15 @@
 {
-	"python.analysis.typeCheckingMode": "basic"
+	"python.analysis.typeCheckingMode": "basic",
+	"sqltools.connections": [
+		{
+			"previewLimit": 50,
+			"server": "db",
+			"port": 5432,
+			"driver": "PostgreSQL",
+			"name": "dingdongdb",
+			"database": "postgres",
+			"username": "postgres",
+			"password": "password"
+		}
+	]
 }
