@@ -109,6 +109,7 @@ class DingDongDB:
 	def setConfigValue(self, key, val):
 		"""Update a config value. Throws exception if key is invalid, but does
 		not check for valid values"""
+		# Check if key is valid
 		if key not in TBL_CONFIG_VALID_KEYS:
 			raise KeyError(f'{key} is not a valid key')
 		sql = f'UPDATE {TBL_CONFIG} ' \
@@ -122,7 +123,6 @@ class DingDongDB:
 		except Exception as e:
 			self.__close()
 			raise e
-
 
 	def getConfigDict(self) -> dict:
 		"""Get all configuration options as a dictionary"""

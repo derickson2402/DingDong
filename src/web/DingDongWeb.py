@@ -42,7 +42,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 import ast
 import json
-from DingDongDB import DingDongDB
+from DingDongDB import DingDongDB, TBL_CONFIG_VALID_KEYS
 
 # We must be running on Linux (preferrably in a container)
 from platform import system
@@ -98,6 +98,8 @@ class Config(Resource):
 		failUpdate = { }
 		for key, val in rqst.items():
 			try:
+				if not isValidConfigKeyVal(key, val):
+					raise ValueError("bad key/val for POST /config")
 				DingDongDB(DB_CFG).setConfigValue(key, val)
 			except Exception as e:
 				app.logger.exception(e)
@@ -166,6 +168,22 @@ class IndexAPI(Resource):
 	"""Helpful messages and status at the API Index"""
 	def get(self):
 		return {'status': 'OK'}, 200
+
+def isValidConfigKeyVal(key: str, val) -> bool:
+	if key not in TBL_CONFIG_VALID_KEYS:
+		return False
+	if key == "Volume":
+		if type(val) is not int:
+			return False
+		if val < 0 or val > 100:
+			return False
+	elif key == "MaxSoundLength":
+		if type(val) is not int:
+			return False
+		if val < 0:
+			return False
+	# TODO: check if supplied sound is in library
+	return True
 
 @app.route('/')
 def webIndex():
