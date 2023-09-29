@@ -13,7 +13,8 @@
 				"fabiospampinato.vscode-diff",
 				"nhoizey.gremlins",
 				"mtxr.sqltools-driver-pg",
-				"ms-python.python"
+				"ms-python.python",
+				"sanaajani.taskrunnercode"
 			]
 		}
 	},

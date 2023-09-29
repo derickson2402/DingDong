@@ -1,0 +1,33 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run API",
+			"type": "shell",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": false,
+				"clear": true
+			},
+			"command": "flask",
+			"args": [
+				"run",
+				"--no-debugger",
+				"--reload"
+			],
+			"options": {
+				"env": {
+					"FLASK_APP": "src/web/DingDongWeb.py",
+					"FLASK_DEBUG": "1",
+					"DB_HOST": "db",
+					"DB_PASSWORD": "password"
+				}
+			}
+		}
+	]
+}
